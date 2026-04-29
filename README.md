@@ -6,18 +6,20 @@ A Claude Code plugin that turns "ship a release" into a single slash command. Au
 
 `/claude-release:release` drives the full release workflow:
 
-1. **Detect** version file, format, test command, and GitHub repo
+1. **Detect** version file, format, test command, and git remote
 2. **Preflight** (project-specific checks, optional)
 3. **Bump** the version
-4. **Test** — abort on failure
-5. **Review docs** for drift
-6. **Draft release notes** grouped by Features / Fixes / Docs / Other
-7. **Approval gate** — you confirm or edit the notes before anything ships
-8. **Update CHANGELOG.md**
-9. **Pre-commit hook** (project-specific, optional)
-10. **Commit, tag, push**
-11. **Create GitHub release** via `gh`
-12. **Post-release hook** (project-specific, optional)
+4. **Simplify** pending changes — invokes `/simplify` to catch dupes/inefficiencies before they ship
+5. **Test** — abort on failure (validates simplifications too)
+6. **Review docs** for drift
+7. **Draft release notes** grouped by Features / Fixes / Docs / Other
+8. **Approval gate** — you confirm or edit the notes before anything ships
+9. **Update CHANGELOG.md**
+10. **Pre-commit hook** (project-specific, optional)
+11. **Commit, tag, push**
+12. **Create release page** — auto via `gh` if installed and the remote is GitHub; otherwise emits a manual URL (works on GitLab, Gitea, self-hosted git too)
+13. **Post-release hook** (project-specific, optional)
+14. **Confirm** — print the release URL
 
 ## Installation
 
@@ -130,7 +132,7 @@ Got a `.claude/commands/release.md` already? Decompose it into:
 | Format/lint before commit | `.claude/release/pre-commit.md` |
 | Deploy/announce after release | `.claude/release/post-release.md` |
 | Custom release-notes structure | `.claude/release/notes-template.md` |
-| Generic spine (bump, test, commit, push, gh release) | Delete — provided by the plugin |
+| Generic spine (bump, simplify, test, docs review, notes draft, approval, commit, push, release page) | Delete — provided by the plugin |
 
 ### Worked example: claude-sessions
 
@@ -164,7 +166,9 @@ For deterministic checks that don't need reasoning, prefer `release.config.json`
 
 **"No test command detected"** — auto-detection couldn't find one. Set `test` in your config, or add it to your project (e.g., a `test` script in `package.json`).
 
-**"gh release create failed"** — check `gh auth status`. The plugin won't roll back commits/tags on a release failure; fix the auth issue and re-run `gh release create` manually.
+**"gh release create failed"** — check `gh auth status`. The plugin won't roll back commits/tags on a release failure; the tag is already pushed, so just fix the auth issue and re-run `gh release create v<NEW> --notes ...` manually with the approved notes.
+
+**"I don't have `gh` installed"** — that's fine. The release still ships (Phase 11 pushes the tag); the plugin will print a manual URL like `https://github.com/<owner>/<repo>/releases/new?tag=v<NEW>` for you to open and paste the approved release notes into. Same fallback works for GitLab, Gitea, and Codeberg with host-appropriate URLs.
 
 **"My preflight says fix the docs but I don't agree"** — preflight is project-defined. Edit `.claude/release/preflight.md` to match your actual project invariants.
 
