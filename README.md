@@ -77,15 +77,15 @@ Drop a `.claude/release.config.json` in your project to override detection:
 ```json
 {
   "version": {
-    "file": "bin/cs",
-    "format": "calver-build"
+    "file": "package.json",
+    "format": "semver"
   },
-  "test": "bash tests/test_*.sh",
+  "test": "npm test",
   "tag": { "prefix": "v" }
 }
 ```
 
-Full schema: see `skills/release/references/config-schema.md` after install, or `templates/release.config.example.json` for a starter.
+Supported formats: `semver`, `calver-build` (`YYYY.M.BUILD`), `calver-month-patch` (`YYYY.MM.PATCH`), `calver-month`, `calver-day`, `custom`. Full schema: see `skills/release/references/config-schema.md` after install, or `templates/release.config.example.json` for a starter.
 
 ## Per-project lifecycle hooks (optional)
 
@@ -95,7 +95,7 @@ For things that need *Claude reasoning* — checks with edge cases, format conve
 |---|---|---|
 | `preflight.md` | Before version bump | Integrity checks, custom audits |
 | `pre-commit.md` | Before `git commit` | Format/lint, regenerate derived files |
-| `post-release.md` | After GitHub release | Deploy, announce, publish to registry |
+| `post-release.md` | After the release page is created | Deploy, announce, publish to registry |
 | `notes-template.md` | While drafting notes | Required sections, custom structure |
 
 Starters live in `templates/release/`. Copy what you need:
@@ -137,7 +137,7 @@ For deterministic checks that don't need reasoning, prefer `release.config.json`
 
 **"gh release create failed"** — check `gh auth status`. The plugin won't roll back commits/tags on a release failure; the tag is already pushed, so just fix the auth issue and re-run `gh release create v<NEW> --notes ...` manually with the approved notes.
 
-**"I don't have `gh` installed"** — that's fine. The release still ships (Phase 11 pushes the tag); the plugin will print a manual URL like `https://github.com/<owner>/<repo>/releases/new?tag=v<NEW>` for you to open and paste the approved release notes into. Same fallback works for GitLab, Gitea, and Codeberg with host-appropriate URLs.
+**"I don't have `gh` installed"** — that's fine. The release still ships (the tag is pushed via plain `git push` before the release-page step); the plugin will print a manual URL like `https://github.com/<owner>/<repo>/releases/new?tag=v<NEW>` for you to open and paste the approved release notes into. Same fallback works for GitLab, Gitea, and Codeberg with host-appropriate URLs.
 
 **"My preflight says fix the docs but I don't agree"** — preflight is project-defined. Edit `.claude/release/preflight.md` to match your actual project invariants.
 
