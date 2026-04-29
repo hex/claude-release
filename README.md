@@ -21,28 +21,30 @@ A Claude Code plugin that turns "ship a release" into a single slash command. Au
 
 ## Installation
 
-Install via the Claude Code plugin marketplace mechanism. Two paths:
+### From marketplace (recommended)
 
-**From a local clone (development):**
-```bash
-git clone <this-repo> ~/code/claude-release
-# In Claude Code:
-/plugin marketplace add ~/code/claude-release
+```
+# Add the hex-plugins marketplace (once)
+/plugin marketplace add hex/claude-marketplace
+
+# Install the plugin
 /plugin install claude-release
 ```
 
-**From a published marketplace (once distributed):**
-```bash
-/plugin marketplace add <marketplace-url>
-/plugin install claude-release@<marketplace>
+### From GitHub
+
+```
+/plugin install hex/claude-release
 ```
 
-Verify installation:
+### Manual
+
 ```bash
-/plugin list
+git clone https://github.com/hex/claude-release.git
+claude --plugin-dir /path/to/claude-release
 ```
 
-After installation, `/claude-release:release` is available as a slash command. Run `/help` to confirm it appears in the list.
+After installation, `/claude-release:release` is available as a slash command. Run `/help` to confirm it appears.
 
 ## Prerequisites
 
@@ -168,4 +170,4 @@ For deterministic checks that don't need reasoning, prefer `release.config.json`
 
 ## License
 
-[Add a LICENSE file before publishing.]
+MIT — see [LICENSE](LICENSE).
