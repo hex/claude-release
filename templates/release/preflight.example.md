@@ -1,6 +1,6 @@
 # Preflight checks
 
-This file runs in Phase 1 of `/release-flow:release`, after project detection
+This file runs in Phase 1 of `/claude-release:release`, after project detection
 and before the version bump. Use it for project-specific integrity checks
 that the generic flow doesn't know about.
 

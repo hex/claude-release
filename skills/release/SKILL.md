@@ -1,6 +1,6 @@
 ---
 name: release
-description: Use this skill when the user invokes `/release-flow:release` or asks to ship, cut, tag, or publish a release of the current project. Drives the full release workflow — version bump, tests, docs review, release-notes draft with approval gate, commit, push, and GitHub release. Trigger phrases include "ship a release", "cut version X", "release this", "release v2.1", "tag a release", "publish a version", "make a release", "bump and tag", "/release", "/release-flow:release". Does NOT trigger for partial release steps in isolation ("just bump the version", "only push to npm", "only create the tag") — those are direct tool calls, not the full flow. Auto-detects project context for typical projects; reads optional per-project config from `.claude/release.config.json` and lifecycle markdown overrides in `.claude/release/`.
+description: Use this skill when the user invokes `/claude-release:release` or asks to ship, cut, tag, or publish a release of the current project. Drives the full release workflow — version bump, tests, docs review, release-notes draft with approval gate, commit, push, and GitHub release. Trigger phrases include "ship a release", "cut version X", "release this", "release v2.1", "tag a release", "publish a version", "make a release", "bump and tag", "/release", "/claude-release:release". Does NOT trigger for partial release steps in isolation ("just bump the version", "only push to npm", "only create the tag") — those are direct tool calls, not the full flow. Auto-detects project context for typical projects; reads optional per-project config from `.claude/release.config.json` and lifecycle markdown overrides in `.claude/release/`.
 argument-hint: "[version-override-or-empty]"
 allowed-tools:
   - Read
@@ -16,11 +16,11 @@ allowed-tools:
   - TaskList
 ---
 
-# /release-flow:release
+# /claude-release:release
 
 Drive a software release end-to-end. The flow is: detect project context → run preflight → bump version → run tests → review docs → draft release notes → get approval → commit → push → create GitHub release → run post-release hooks.
 
-The user invoked `/release-flow:release`. Optional argument: a version override (e.g., `/release-flow:release 2.1.0`). If absent, compute the next version automatically.
+The user invoked `/claude-release:release`. Optional argument: a version override (e.g., `/claude-release:release 2.1.0`). If absent, compute the next version automatically.
 
 ## Workflow setup — Create task list for visible progress
 
@@ -58,7 +58,7 @@ Read project state to figure out version file, format, test command, and repo. P
 
 5. **Print a one-line context summary** so the user sees what was detected before any changes happen:
    ```
-   release-flow: project=<name>, version=<current> (<format>), test=<cmd>, repo=<owner/repo>
+   claude-release: project=<name>, version=<current> (<format>), test=<cmd>, repo=<owner/repo>
    ```
 
 ## Phase 1 — Splice in project preflight

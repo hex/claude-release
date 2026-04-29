@@ -1,6 +1,6 @@
 # Release notes template
 
-Used in Phase 5 of `/release-flow:release` when drafting release notes.
+Used in Phase 5 of `/claude-release:release` when drafting release notes.
 Defines the structure, sections, and any required content callouts.
 
 ## Template

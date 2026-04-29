@@ -1,6 +1,6 @@
 # `.claude/release.config.json` Schema
 
-Per-project override for the release-flow plugin. All fields are optional; values not present fall back to auto-detection (see `version-formats.md`).
+Per-project override for the claude-release plugin. All fields are optional; values not present fall back to auto-detection (see `version-formats.md`).
 
 ## Schema
 
@@ -39,7 +39,7 @@ Path to the file holding the canonical version. Required only if multiple files 
 ### `version.format`
 One of:
 - `semver` — `MAJOR.MINOR.PATCH`. Default for most projects.
-- `calver-build` — `YYYY.M.BUILD` (unpadded month, build resets each month). Used by claude-sessions and release-flow itself.
+- `calver-build` — `YYYY.M.BUILD` (unpadded month, build resets each month). Used by claude-sessions and claude-release itself.
 - `calver-month-patch` — `YYYY.MM.PATCH` (zero-padded month, patch resets each month).
 - `calver-month` — `YYYY.MM`.
 - `calver-day` — `YYYY.MM.DD`.

@@ -1,10 +1,10 @@
-# release-flow
+# claude-release
 
 A Claude Code plugin that turns "ship a release" into a single slash command. Auto-detects most projects; extensible for the rest.
 
 ## What it does
 
-`/release-flow:release` drives the full release workflow:
+`/claude-release:release` drives the full release workflow:
 
 1. **Detect** version file, format, test command, and GitHub repo
 2. **Preflight** (project-specific checks, optional)
@@ -25,16 +25,16 @@ Install via the Claude Code plugin marketplace mechanism. Two paths:
 
 **From a local clone (development):**
 ```bash
-git clone <this-repo> ~/code/release-flow
+git clone <this-repo> ~/code/claude-release
 # In Claude Code:
-/plugin marketplace add ~/code/release-flow
-/plugin install release-flow
+/plugin marketplace add ~/code/claude-release
+/plugin install claude-release
 ```
 
 **From a published marketplace (once distributed):**
 ```bash
 /plugin marketplace add <marketplace-url>
-/plugin install release-flow@<marketplace>
+/plugin install claude-release@<marketplace>
 ```
 
 Verify installation:
@@ -42,7 +42,7 @@ Verify installation:
 /plugin list
 ```
 
-After installation, `/release-flow:release` is available as a slash command. Run `/help` to confirm it appears in the list.
+After installation, `/claude-release:release` is available as a slash command. Run `/help` to confirm it appears in the list.
 
 ## Prerequisites
 
@@ -97,7 +97,7 @@ For things that need *Claude reasoning* — checks with edge cases, format conve
 Starters live in `templates/release/`. Copy what you need:
 
 ```bash
-cp release-flow/templates/release/preflight.example.md \
+cp claude-release/templates/release/preflight.example.md \
    .claude/release/preflight.md
 ```
 
@@ -107,10 +107,10 @@ The plugin reads these files and follows their instructions when it reaches that
 
 ```bash
 # In any project with a recognizable version file:
-/release-flow:release
+/claude-release:release
 
 # Or pin a specific version:
-/release-flow:release 2.1.0
+/claude-release:release 2.1.0
 ```
 
 Walk through the prompts. The plugin will pause for your approval before anything is committed or pushed.

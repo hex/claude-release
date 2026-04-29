@@ -1,6 +1,6 @@
 # Version Formats and Detection
 
-This file describes how `/release-flow:release` discovers the version file, format, and test command for a project. Read this when Phase 0 of `SKILL.md` runs.
+This file describes how `/claude-release:release` discovers the version file, format, and test command for a project. Read this when Phase 0 of `SKILL.md` runs.
 
 ## Detection priority (version source)
 
@@ -39,7 +39,7 @@ Bump rule:
 - Otherwise: reset to today's `YYYY.M.1`.
 Regex: `^(\d{4})\.(\d{1,2})\.(\d+)$`
 Example: `2026.4.42` → `2026.4.43` (same month) or `2026.5.1` (next month).
-Used by: this plugin (`release-flow`) itself, and by claude-sessions.
+Used by: this plugin (`claude-release`) itself, and by claude-sessions.
 
 ### `calver-month-patch`
 Pattern: `YYYY.MM.PATCH` — same logical layout as `calver-build` but with **zero-padded** month. `PATCH` resets each month.

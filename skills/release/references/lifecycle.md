@@ -1,6 +1,6 @@
 # Lifecycle Markdown Files
 
-The `/release-flow:release` skill checks for four optional markdown files in a project's `.claude/release/` directory and splices their content into the release flow at specific phases. Each file is read and followed *as instructions for Claude*, not as a script — they can mix prose reasoning, bash blocks, checklists, and conditionals.
+The `/claude-release:release` skill checks for four optional markdown files in a project's `.claude/release/` directory and splices their content into the release flow at specific phases. Each file is read and followed *as instructions for Claude*, not as a script — they can mix prose reasoning, bash blocks, checklists, and conditionals.
 
 ## The four slots
 
