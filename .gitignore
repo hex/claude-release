@@ -1,0 +1,23 @@
+# Session metadata (not part of plugin distribution)
+.cs/
+.claude/
+CLAUDE.md
+
+# Eval workspace (not part of plugin distribution)
+release-flow-workspace/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor configs
+.idea/
+.vscode/
+.obsidian/
+*.swp
+*.swo
+*~
+
+# Local overrides users may keep alongside the plugin
+*.local.md
+*.local.json

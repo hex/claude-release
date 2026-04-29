@@ -1,0 +1,171 @@
+# release-flow
+
+A Claude Code plugin that turns "ship a release" into a single slash command. Auto-detects most projects; extensible for the rest.
+
+## What it does
+
+`/release-flow:release` drives the full release workflow:
+
+1. **Detect** version file, format, test command, and GitHub repo
+2. **Preflight** (project-specific checks, optional)
+3. **Bump** the version
+4. **Test** — abort on failure
+5. **Review docs** for drift
+6. **Draft release notes** grouped by Features / Fixes / Docs / Other
+7. **Approval gate** — you confirm or edit the notes before anything ships
+8. **Update CHANGELOG.md**
+9. **Pre-commit hook** (project-specific, optional)
+10. **Commit, tag, push**
+11. **Create GitHub release** via `gh`
+12. **Post-release hook** (project-specific, optional)
+
+## Installation
+
+Install via the Claude Code plugin marketplace mechanism. Two paths:
+
+**From a local clone (development):**
+```bash
+git clone <this-repo> ~/code/release-flow
+# In Claude Code:
+/plugin marketplace add ~/code/release-flow
+/plugin install release-flow
+```
+
+**From a published marketplace (once distributed):**
+```bash
+/plugin marketplace add <marketplace-url>
+/plugin install release-flow@<marketplace>
+```
+
+Verify installation:
+```bash
+/plugin list
+```
+
+After installation, `/release-flow:release` is available as a slash command. Run `/help` to confirm it appears in the list.
+
+## Prerequisites
+
+- `gh` CLI authenticated (`gh auth status`)
+- Git remote `origin` pointing to a GitHub repo
+- Either a recognizable version file (see below) or a `.claude/release.config.json`
+
+## Auto-detection
+
+For most projects, no configuration is needed. The plugin detects:
+
+| Project type | Version source | Test command |
+|---|---|---|
+| Node | `package.json` `"version"` | `npm test` (or `pnpm test` / `yarn test`) |
+| Rust | `Cargo.toml` `[package].version` | `cargo test` |
+| Python | `pyproject.toml` `[project].version` | `pytest` |
+| Go | tags only (use config) | `go test ./...` |
+| Ruby | `*.gemspec` `spec.version` | `bundle exec rspec` |
+| Shell | `bin/<script>` `VERSION=` line | `bash tests/test_*.sh` if present |
+| Generic | `VERSION` file at root | ask if not detected |
+
+If you have multiple version sources that disagree, the plugin asks you which is canonical — it won't guess.
+
+## Per-project configuration
+
+Drop a `.claude/release.config.json` in your project to override detection:
+
+```json
+{
+  "version": {
+    "file": "bin/cs",
+    "format": "calver-build"
+  },
+  "test": "bash tests/test_*.sh",
+  "tag": { "prefix": "v" }
+}
+```
+
+Full schema: see `skills/release/references/config-schema.md` after install, or `templates/release.config.example.json` for a starter.
+
+## Per-project lifecycle hooks (optional)
+
+For things that need *Claude reasoning* — checks with edge cases, format conversions, conditional logic — drop markdown files in `.claude/release/`:
+
+| File | Phase | Purpose |
+|---|---|---|
+| `preflight.md` | Before version bump | Integrity checks, custom audits |
+| `pre-commit.md` | Before `git commit` | Format/lint, regenerate derived files |
+| `post-release.md` | After GitHub release | Deploy, announce, publish to registry |
+| `notes-template.md` | While drafting notes | Required sections, custom structure |
+
+Starters live in `templates/release/`. Copy what you need:
+
+```bash
+cp release-flow/templates/release/preflight.example.md \
+   .claude/release/preflight.md
+```
+
+The plugin reads these files and follows their instructions when it reaches that phase. They override the generic flow within their phase. The skill's invariants (test failures abort, approval is required, no commit without approval) are not overridable.
+
+## Quickstart
+
+```bash
+# In any project with a recognizable version file:
+/release-flow:release
+
+# Or pin a specific version:
+/release-flow:release 2.1.0
+```
+
+Walk through the prompts. The plugin will pause for your approval before anything is committed or pushed.
+
+## Migrating a project from a hand-rolled release command
+
+Got a `.claude/commands/release.md` already? Decompose it into:
+
+| Original step | Where it goes now |
+|---|---|
+| Hard-coded version file & format | `.claude/release.config.json` → `version.file`, `version.format` |
+| Hard-coded test command | `.claude/release.config.json` → `test` |
+| Hard-coded repo URL | Auto-detected from `git remote` (override via `repo.owner`/`repo.name` if needed) |
+| Project-specific integrity checks | `.claude/release/preflight.md` |
+| Format/lint before commit | `.claude/release/pre-commit.md` |
+| Deploy/announce after release | `.claude/release/post-release.md` |
+| Custom release-notes structure | `.claude/release/notes-template.md` |
+| Generic spine (bump, test, commit, push, gh release) | Delete — provided by the plugin |
+
+### Worked example: claude-sessions
+
+The original `release.md` was 180 lines tightly coupled to claude-sessions. After migration:
+
+**`.claude/release.config.json`** (4 lines of data):
+```json
+{
+  "version": { "file": "bin/cs", "format": "calver-build" },
+  "test": "bash tests/test_*.sh"
+}
+```
+
+**`.claude/release/preflight.md`** (the install/uninstall parity check that's specific to claude-sessions; copy from `templates/release/preflight.example.md` and replace with the parity-check bash from the original `release.md` step 2).
+
+Everything else is the generic spine. The 180-line file becomes ~40 lines of project-specific content + a config.
+
+## How extension precedence works
+
+For each phase that has a splice point:
+
+1. Plugin runs the generic logic for the phase.
+2. If `.claude/release/<slot>.md` exists, the plugin reads it and follows its instructions — they can extend, restrict, or replace the generic behavior for that phase.
+3. Skill invariants (approval required, tests must pass) are NOT overridable; they live in the skill body.
+
+For deterministic checks that don't need reasoning, prefer `release.config.json` `preflightCmd` (a single shell command) over a `preflight.md`. The markdown is for things where Claude needs to interpret output and decide.
+
+## Troubleshooting
+
+**"Multiple version sources detected"** — you have, e.g., both `package.json` and `Cargo.toml`. Add `version.file` to your config to disambiguate.
+
+**"No test command detected"** — auto-detection couldn't find one. Set `test` in your config, or add it to your project (e.g., a `test` script in `package.json`).
+
+**"gh release create failed"** — check `gh auth status`. The plugin won't roll back commits/tags on a release failure; fix the auth issue and re-run `gh release create` manually.
+
+**"My preflight says fix the docs but I don't agree"** — preflight is project-defined. Edit `.claude/release/preflight.md` to match your actual project invariants.
+
+## License
+
+[Add a LICENSE file before publishing.]

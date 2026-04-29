@@ -1,0 +1,10 @@
+{
+  "name": "release-flow",
+  "version": "2026.4.0",
+  "description": "Project-agnostic /release slash command. Drives version bump, tests, docs review, release-notes draft, approval gate, commit/push, and GitHub release. Auto-detects most projects; supports per-project release.config.json and lifecycle markdown extensions in .claude/release/.",
+  "author": {
+    "name": "hex",
+    "email": "support@hexul.com"
+  },
+  "keywords": ["release", "versioning", "changelog", "github", "workflow"]
+}

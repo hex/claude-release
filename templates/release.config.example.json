@@ -1,0 +1,13 @@
+{
+  "version": {
+    "file": "package.json",
+    "format": "semver"
+  },
+  "test": "npm test",
+  "tag": {
+    "prefix": "v"
+  },
+  "changelog": {
+    "file": "CHANGELOG.md"
+  }
+}
