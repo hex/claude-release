@@ -119,37 +119,6 @@ The plugin reads these files and follows their instructions when it reaches that
 
 Walk through the prompts. The plugin will pause for your approval before anything is committed or pushed.
 
-## Migrating a project from a hand-rolled release command
-
-Got a `.claude/commands/release.md` already? Decompose it into:
-
-| Original step | Where it goes now |
-|---|---|
-| Hard-coded version file & format | `.claude/release.config.json` → `version.file`, `version.format` |
-| Hard-coded test command | `.claude/release.config.json` → `test` |
-| Hard-coded repo URL | Auto-detected from `git remote` (override via `repo.owner`/`repo.name` if needed) |
-| Project-specific integrity checks | `.claude/release/preflight.md` |
-| Format/lint before commit | `.claude/release/pre-commit.md` |
-| Deploy/announce after release | `.claude/release/post-release.md` |
-| Custom release-notes structure | `.claude/release/notes-template.md` |
-| Generic spine (bump, simplify, test, docs review, notes draft, approval, commit, push, release page) | Delete — provided by the plugin |
-
-### Worked example: claude-sessions
-
-The original `release.md` was 180 lines tightly coupled to claude-sessions. After migration:
-
-**`.claude/release.config.json`** (4 lines of data):
-```json
-{
-  "version": { "file": "bin/cs", "format": "calver-build" },
-  "test": "bash tests/test_*.sh"
-}
-```
-
-**`.claude/release/preflight.md`** (the install/uninstall parity check that's specific to claude-sessions; copy from `templates/release/preflight.example.md` and replace with the parity-check bash from the original `release.md` step 2).
-
-Everything else is the generic spine. The 180-line file becomes ~40 lines of project-specific content + a config.
-
 ## How extension precedence works
 
 For each phase that has a splice point:
