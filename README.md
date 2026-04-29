@@ -48,9 +48,9 @@ After installation, `/claude-release:release` is available as a slash command. R
 
 ## Prerequisites
 
-- `gh` CLI authenticated (`gh auth status`)
-- Git remote `origin` pointing to a GitHub repo
+- Git remote `origin` set
 - Either a recognizable version file (see below) or a `.claude/release.config.json`
+- *(Optional)* `gh` CLI authenticated. If `gh` is installed and the remote is `github.com`, `/claude-release:release` auto-creates the GitHub release page. Without `gh`, the release still ships (tag is pushed) — you'll get a manual URL to paste the release notes into. Non-GitHub hosts (GitLab, Gitea, etc.) get the same fallback with a host-appropriate URL.
 
 ## Auto-detection
 

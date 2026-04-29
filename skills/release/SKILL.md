@@ -191,8 +191,14 @@ git push
 
 Show `git status` output before staging. If anything looks unexpected (untracked files you didn't author, paths you don't recognize), pause and ask.
 
-## Phase 11 — Create GitHub release
+## Phase 11 — Create GitHub release (conditional)
 
+This step depends on what's available. Check both:
+
+1. Run `which gh` to see if the GitHub CLI is installed.
+2. Determine whether the remote is GitHub. Parse the URL from `git remote get-url origin` — is the host `github.com`?
+
+**Case A — `gh` is installed AND the remote is github.com:**
 ```bash
 gh release create v<NEW> \
   --title "v<NEW>" \
@@ -201,8 +207,23 @@ gh release create v<NEW> \
 EOF
 )"
 ```
-
 If the project doesn't tag releases with `v` prefix, omit it (read config or follow existing tag convention).
+
+**Case B — `gh` is NOT installed, but the remote IS github.com:**
+The release is already shipped (the tag was pushed in Phase 10). Print manual instructions for the release page:
+
+- URL to open: `https://github.com/<owner>/<repo>/releases/new?tag=v<NEW>`
+- Paste the approved release notes (from Phase 6) into the description field.
+- Click "Publish release."
+
+Then continue to Phase 12. Do not abort the workflow — the tag is the shipped artifact; the release page is documentation.
+
+**Case C — the remote is NOT github.com** (GitLab, Gitea, Codeberg, self-hosted, etc.):
+GitHub release pages don't apply. The release is shipped via the tag pushed in Phase 10. If the host has its own equivalent:
+- GitLab: `https://gitlab.com/<owner>/<repo>/-/releases/new?tag_name=v<NEW>`
+- Gitea/Codeberg: `<host>/<owner>/<repo>/releases/new?tag=v<NEW>`
+
+Point the user at the right URL if you can recognize the host; otherwise just confirm the tag is pushed and let them handle host-specific release pages manually.
 
 ## Phase 12 — Splice in post-release hook
 
