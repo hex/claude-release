@@ -7,9 +7,9 @@ The `/claude-release:release` skill checks for four optional markdown files in a
 | File | Splice phase | When it runs | Common uses |
 |---|---|---|---|
 | `preflight.md` | 1 | After detection, before version bump (Phase 2) | Project integrity checks, custom doc audits, sanity tests |
-| `pre-commit.md` | 8 | After CHANGELOG update (Phase 7), before staging and `git commit` (Phase 9) | Format/lint passes, regenerate derived files |
-| `post-release.md` | 11 | After `gh release create` succeeds (Phase 10) | Deploy docs, post to a channel, trigger pipelines, publish to a registry |
-| `notes-template.md` | 5 | While drafting release notes, before the approval gate (Phase 6) | Required sections, custom headings, content callouts |
+| `pre-commit.md` | 9 | After CHANGELOG update (Phase 8), before staging and `git commit` (Phase 10) | Format/lint passes, regenerate derived files |
+| `post-release.md` | 12 | After `gh release create` succeeds (Phase 11) | Deploy docs, post to a channel, trigger pipelines, publish to a registry |
+| `notes-template.md` | 6 | While drafting release notes, before the approval gate (Phase 7) | Required sections, custom headings, content callouts |
 
 If a file is absent, the skill skips that splice silently. There is no need to declare which slots a project uses.
 

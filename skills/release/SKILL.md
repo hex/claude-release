@@ -18,7 +18,7 @@ allowed-tools:
 
 # /claude-release:release
 
-Drive a software release end-to-end. The flow is: detect project context → run preflight → bump version → run tests → review docs → draft release notes → get approval → commit → push → create GitHub release → run post-release hooks.
+Drive a software release end-to-end. The flow is: detect project context → run preflight → bump version → simplify changes → run tests → review docs → draft release notes → get approval → commit → push → create GitHub release → run post-release hooks.
 
 The user invoked `/claude-release:release`. Optional argument: a version override (e.g., `/claude-release:release 2.1.0`). If absent, compute the next version automatically.
 
@@ -29,16 +29,17 @@ The user invoked `/claude-release:release`. Optional argument: a version overrid
 1. "Detect project context" (Phase 0)
 2. "Run preflight checks" (Phase 1)
 3. "Bump version" (Phase 2)
-4. "Run tests" (Phase 3)
-5. "Review documentation" (Phase 4)
-6. "Draft release notes" (Phase 5)
-7. "Approval gate" (Phase 6)
-8. "Update CHANGELOG" (Phase 7)
-9. "Run pre-commit hook" (Phase 8)
-10. "Commit and push" (Phase 9)
-11. "Create GitHub release" (Phase 10)
-12. "Run post-release hook" (Phase 11)
-13. "Confirm completion" (Phase 12)
+4. "Simplify changes" (Phase 3)
+5. "Run tests" (Phase 4)
+6. "Review documentation" (Phase 5)
+7. "Draft release notes" (Phase 6)
+8. "Approval gate" (Phase 7)
+9. "Update CHANGELOG" (Phase 8)
+10. "Run pre-commit hook" (Phase 9)
+11. "Commit and push" (Phase 10)
+12. "Create GitHub release" (Phase 11)
+13. "Run post-release hook" (Phase 12)
+14. "Confirm completion" (Phase 13)
 
 For each phase below: call `TaskUpdate` with `status: "in_progress"` when you START the phase, and `TaskUpdate` with `status: "completed"` when you FINISH it. If a phase is genuinely a no-op for this project (e.g., no `preflight.md` exists and no `preflightCmd` configured), still mark it completed — don't skip the status update.
 
@@ -82,13 +83,21 @@ If neither input exists, skip this phase.
 
 3. Verify with a `Grep` after the edit that the new version appears exactly once at the expected location.
 
-## Phase 3 — Run tests
+## Phase 3 — Simplify changes
+
+Invoke the `/simplify` skill via the Skill tool to review all pending changes for reuse, quality, and efficiency. `/simplify` is part of each Claude Code install — assume it's available, no fallback needed.
+
+The skill fans out parallel review agents (reuse, quality, efficiency) over the diff and auto-applies fixes it finds. The subsequent test run (Phase 4) validates that nothing was broken by the simplification.
+
+If `/simplify` reports an empty diff, verify with the user — a release with zero pending changes is unusual unless it's a pure docs/changelog release.
+
+## Phase 4 — Run tests
 
 Run the detected/configured test command. **Stop immediately if any tests fail.** Do not proceed with a broken build. If the test output is noisy, tail the last failure and present it to the user; the user fixes, then re-invokes the skill.
 
 If config sets `test: "skip"` or test command is `null` and the user explicitly opted in to skipping (via config), document the skip in the release notes. Default behavior is: tests must pass.
 
-## Phase 4 — Review documentation
+## Phase 5 — Review documentation
 
 Check that documentation reflects the current code. The generic checks:
 - `README.md` features list matches actual functionality
@@ -97,7 +106,7 @@ Check that documentation reflects the current code. The generic checks:
 
 If `.claude/release/preflight.md` already covered docs, skip the redundant pass — the project's preflight is more specific. Otherwise do the generic pass and fix any drift you find before continuing.
 
-## Phase 5 — Draft release notes
+## Phase 6 — Draft release notes
 
 1. Fetch tags from origin (releases tagged on GitHub may not be local):
    ```bash
@@ -146,7 +155,7 @@ Format draft:
 
 If `.claude/release/notes-template.md` exists in the project, **Read it and use it as the template for the notes** — it may define required sections (e.g., "Migration Notes", "Breaking Changes"), specific headings, or content callouts. Apply its structure to the grouped commits.
 
-## Phase 6 — Approval gate
+## Phase 7 — Approval gate
 
 Show the draft notes to the user via `AskUserQuestion` with:
 - **Approve** — proceed to commit and release
@@ -154,35 +163,35 @@ Show the draft notes to the user via `AskUserQuestion` with:
 
 Do NOT proceed past this phase without explicit approval.
 
-## Phase 7 — Update CHANGELOG
+## Phase 8 — Update CHANGELOG
 
 Insert the approved notes as a new `## <NEW>` section at the top of `CHANGELOG.md` (after the file header, before the previous release section). Use the version *without* the `v` prefix to match conventional changelog entries.
 
 If `CHANGELOG.md` does not exist, ask the user whether to create one — don't silently start one.
 
-## Phase 8 — Splice in pre-commit hook
+## Phase 9 — Splice in pre-commit hook
 
 If `.claude/release/pre-commit.md` exists, Read it and follow its instructions before staging. Common uses: run a formatter, regenerate derived files, run a final lint pass.
 
-Note: pre-commit runs *after* the CHANGELOG entry is added (Phase 7). If the project's pre-commit formatter touches CHANGELOG.md, that's fine — re-stage afterward. If you prefer to format the CHANGELOG before adding the entry, do that work in `preflight.md` instead.
+Note: pre-commit runs *after* the CHANGELOG entry is added (Phase 8). If the project's pre-commit formatter touches CHANGELOG.md, that's fine — re-stage afterward. If you prefer to format the CHANGELOG before adding the entry, do that work in `preflight.md` instead.
 
-## Phase 9 — Commit and push
+## Phase 10 — Commit and push
 
 ```bash
 git status                         # surface what's about to be committed
 ```
 
-Stage only the files you actually changed during the release: the version file (from Phase 2), `CHANGELOG.md` (from Phase 7), and any files updated by pre-commit hooks (from Phase 8). Do NOT use `git add -A` — it risks pulling in untracked files the user didn't author.
+Stage only the files you actually changed during the release: the version file (from Phase 2), `CHANGELOG.md` (from Phase 8), and any files updated by /simplify (Phase 3) or pre-commit hooks (Phase 9). Do NOT use `git add -A` — it risks pulling in untracked files the user didn't author.
 
 ```bash
-git add <version-file> CHANGELOG.md <files-touched-by-pre-commit>
+git add <version-file> CHANGELOG.md <files-touched-by-simplify-or-pre-commit>
 git commit -m "Release <TAG_PREFIX><NEW>"
 git push
 ```
 
 Show `git status` output before staging. If anything looks unexpected (untracked files you didn't author, paths you don't recognize), pause and ask.
 
-## Phase 10 — Create GitHub release
+## Phase 11 — Create GitHub release
 
 ```bash
 gh release create v<NEW> \
@@ -195,11 +204,11 @@ EOF
 
 If the project doesn't tag releases with `v` prefix, omit it (read config or follow existing tag convention).
 
-## Phase 11 — Splice in post-release hook
+## Phase 12 — Splice in post-release hook
 
 If `.claude/release/post-release.md` exists, Read it and follow its instructions. Common uses: deploy docs, post to a channel, trigger a deploy pipeline, publish to a package registry.
 
-## Phase 12 — Confirm completion
+## Phase 13 — Confirm completion
 
 Print a one-line summary:
 ```
@@ -211,7 +220,7 @@ released v<NEW>: <github release url>
 - Never skip tests silently. If tests fail, stop.
 - Never commit or push before the user approves the release notes.
 - Never bypass the user-defined preflight if it exists — it encodes project invariants.
-- Never use `git add -A` for the release commit — stage specific files (version file, CHANGELOG, pre-commit changes). Always show `git status` first.
+- Never use `git add -A` for the release commit — stage specific files (version file, CHANGELOG, simplify/pre-commit changes). Always show `git status` first.
 - If the user's project has unusual conventions you didn't account for, ASK — don't guess.
 - If two version sources disagree, ASK — don't pick.
 - Treat `.claude/release/*.md` files as authoritative project guidance. They override generic behavior in their phase.
