@@ -98,11 +98,12 @@ For things that need *Claude reasoning* — checks with edge cases, format conve
 | `post-release.md` | After the release page is created | Deploy, announce, publish to registry |
 | `notes-template.md` | While drafting notes | Required sections, custom structure |
 
-Starters live in `templates/release/`. Copy what you need:
+Starters live in [`templates/release/`](https://github.com/hex/claude-release/tree/main/templates/release) on GitHub. Grab one directly:
 
 ```bash
-cp claude-release/templates/release/preflight.example.md \
-   .claude/release/preflight.md
+mkdir -p .claude/release
+curl -o .claude/release/preflight.md \
+  https://raw.githubusercontent.com/hex/claude-release/main/templates/release/preflight.example.md
 ```
 
 The plugin reads these files and follows their instructions when it reaches that phase. They override the generic flow within their phase. The skill's invariants (test failures abort, approval is required, no commit without approval) are not overridable.
