@@ -18,7 +18,7 @@ allowed-tools:
 
 # /claude-release:release
 
-Drive a software release end-to-end. The flow is: detect project context → run preflight → bump version → simplify changes → run tests → review docs → draft release notes → get approval → commit → push → create GitHub release → run post-release hooks.
+Drive a software release end-to-end. The flow is: detect project context → run preflight → bump version → simplify changes → run tests → review docs → draft release notes → get approval → commit → tag → push → create GitHub release → run post-release hooks.
 
 The user invoked `/claude-release:release`. Optional argument: a version override (e.g., `/claude-release:release 2.1.0`). If absent, compute the next version automatically.
 
@@ -36,7 +36,7 @@ The user invoked `/claude-release:release`. Optional argument: a version overrid
 8. "Approval gate" (Phase 7)
 9. "Update CHANGELOG" (Phase 8)
 10. "Run pre-commit hook" (Phase 9)
-11. "Commit and push" (Phase 10)
+11. "Commit, tag, and push" (Phase 10)
 12. "Create GitHub release" (Phase 11)
 13. "Run post-release hook" (Phase 12)
 14. "Confirm completion" (Phase 13)
@@ -53,7 +53,7 @@ Read project state to figure out version file, format, test command, and repo. P
 
 2. **Auto-detect** for any field not in config. Read `references/version-formats.md` for the priority list and detection logic. If two sources disagree (e.g., a `package.json` `"version"` and a `Cargo.toml` `[package].version` differ), use `AskUserQuestion` to ask which is canonical — do NOT guess.
 
-3. **Repo URL**: read `git remote get-url origin`. Parse to `OWNER/REPO`. If the user is on a fork, this is still correct because release tags push to `origin`.
+3. **Repo owner/name**: if `.claude/release.config.json` sets `repo.owner` and/or `repo.name`, use those — they override the git remote (useful for a monorepo whose release page lives in a different repo). Otherwise read `git remote get-url origin` and parse to `OWNER/REPO`. If the user is on a fork, the remote parse is still correct because release tags push to `origin`.
 
 4. **Test command**: from config, or detect from project files (see `references/version-formats.md`). If no test command can be inferred and no config provides one, ask the user — do NOT skip tests silently.
 
@@ -74,10 +74,21 @@ If neither input exists, skip this phase.
 
 ## Phase 2 — Bump version
 
+**First, reconcile any prior aborted run.** Before computing a new version, check whether the version file already holds an *uncommitted* bump from a previous release attempt that aborted (e.g., tests failed in Phase 4 and the user re-invoked). Run `git diff -- <version-file>` (and `git diff --cached -- <version-file>`); if the version value already differs from `HEAD`, do NOT bump again on top of it. Use `AskUserQuestion`:
+- **Resume** — keep the existing uncommitted bump as this release's version; skip re-bumping and continue to Phase 3.
+- **Reset** — `git checkout -- <version-file>` to restore HEAD's version, then bump fresh below.
+
+Never silently bump a second time. The confirmation gate in step 1 only fires for semver; the calver formats compute the next value without a prompt, so an unreconciled re-run would skip a version (e.g., `2026.4.43` → aborted → re-run reads `.43` as current → `2026.4.44`, orphaning `.43`).
+
 1. Compute the next version. If the user passed an explicit version argument, use that (after validating it matches the project's format). Otherwise compute per `references/version-formats.md`:
    - **semver**: inspect commits since the previous tag and propose a bump using Conventional Commits. If any commit body has `BREAKING CHANGE:` or any subject has `!:` (e.g., `feat!:`, `fix!:`) → propose **major**. Else if any subject starts with `feat:` or `feat(scope):` → propose **minor**. Else → propose **patch**. Then use `AskUserQuestion` to confirm (options: the proposal, the next-larger bump, the next-smaller bump, custom). Pre-1.0 projects (`0.x.y`) often treat minor as breaking — surface that in the question. Don't silently bump.
-   - **calver-build** (`YYYY.M.BUILD`): if YYYY.M matches today, increment BUILD; else reset to `YYYY.M.1`.
-   - **calver-month** (`YYYY.MM` or `YYYY.MM.DD`): use today's date.
+   - **calver-build** (`YYYY.M.BUILD`, unpadded month): if `YYYY.M` matches today, increment `BUILD`; else reset to `YYYY.M.1`.
+   - **calver-month-patch** (`YYYY.MM.PATCH`, zero-padded month): if `YYYY.MM` matches today, increment `PATCH`; else reset to `YYYY.MM.1`.
+   - **calver-month** (`YYYY.MM`): use today's `YYYY.MM`; a second release in the same month overwrites.
+   - **calver-day** (`YYYY.MM.DD`): use today's date; if it already matches the current version, append/increment a `.N` collision suffix (`…DD` → `…DD.2` → `…DD.3`).
+   - **custom**: compute from `version.pattern`'s named groups; if the rule is unclear, ask.
+
+   These are one-line summaries — `references/version-formats.md` holds the authoritative rules and regexes for every format.
 
 2. Update the version file using `Edit`. Use the pattern from config (or auto-detected) to match exactly the line that holds the version, so you change only that line.
 
@@ -87,13 +98,15 @@ If neither input exists, skip this phase.
 
 Invoke the `/simplify` skill via the Skill tool to review all pending changes for reuse, quality, and efficiency. `/simplify` is part of each Claude Code install — assume it's available, no fallback needed.
 
-The skill fans out parallel review agents (reuse, quality, efficiency) over the diff and auto-applies fixes it finds. The subsequent test run (Phase 4) validates that nothing was broken by the simplification.
+The skill fans out parallel review agents (reuse, quality, efficiency) over the diff and auto-applies fixes it finds. The subsequent test run (Phase 4) validates that nothing was broken by the simplification. Note which files /simplify modified — you'll surface them at the Phase 7 approval gate so the user's approval covers the shipping code, not just the release notes.
 
 If `/simplify` reports an empty diff, verify with the user — a release with zero pending changes is unusual unless it's a pure docs/changelog release.
 
 ## Phase 4 — Run tests
 
 Run the detected/configured test command. **Stop immediately if any tests fail.** Do not proceed with a broken build. If the test output is noisy, tail the last failure and present it to the user; the user fixes, then re-invokes the skill.
+
+When you stop here, the version file already holds the new (uncommitted) bump from Phase 2 and /simplify (Phase 3) may have edited source files; both stay in the working tree. On re-invoke, Phase 2's reconciliation step detects the existing bump and offers to resume rather than double-bump — surface this to the user so they know the tree is mid-release.
 
 If config sets `test: "skip"` or test command is `null` and the user explicitly opted in to skipping (via config), document the skip in the release notes. Default behavior is: tests must pass.
 
@@ -112,19 +125,24 @@ If `.claude/release/preflight.md` already covered docs, skip the redundant pass 
    ```bash
    git fetch --tags origin 2>/dev/null
    ```
-2. Find the previous release tag. Read the project's tag prefix from `release.config.json` (`tag.prefix`, default `"v"`). If the prefix is `"v"`:
+2. Find the previous release tag and assign it to `PREV_TAG`. Read the project's tag prefix from `release.config.json` (`tag.prefix`, default `"v"`). If the prefix is `"v"`:
    ```bash
-   git tag --list 'v*' --sort=-version:refname | head -1
+   PREV_TAG=$(git tag --list 'v*' --sort=-version:refname | head -1)
    ```
    If the prefix is empty, list all tags:
    ```bash
-   git tag --sort=-version:refname | head -1
+   PREV_TAG=$(git tag --sort=-version:refname | head -1)
    ```
    For any other prefix, substitute it in the `--list` pattern.
-3. Collect commits since that tag:
+3. Collect commits since that tag. **If `PREV_TAG` is empty** — no tags exist yet (a first-ever release) or a prior release shipped without one — use the full history and treat this as the initial release:
    ```bash
-   git log "$PREV_TAG"..HEAD --oneline --no-merges
+   if [ -z "$PREV_TAG" ]; then
+     git log --oneline --no-merges          # entire history — initial release
+   else
+     git log "$PREV_TAG"..HEAD --oneline --no-merges
+   fi
    ```
+   When `PREV_TAG` is empty, label the draft as the initial release and omit the **Full Changelog** compare line below (there is no previous tag to compare against).
 4. **Also check uncommitted changes** (`git diff --stat`). Some sessions accumulate working-tree changes across multiple work blocks, and skipping this misses real shipping content.
 5. **Cross-check against `CHANGELOG.md`**: read the previous release's section and verify nothing in your draft was already shipped. Working-tree changes can include features from earlier sessions that already got released.
 
@@ -157,17 +175,22 @@ If `.claude/release/notes-template.md` exists in the project, **Read it and use 
 
 ## Phase 7 — Approval gate
 
+If /simplify (Phase 3) auto-applied any source edits, first show a `git diff --stat` of the touched files (or a short summary of what changed) so the user sees the code that will ship, not just the notes.
+
 Show the draft notes to the user via `AskUserQuestion` with:
 - **Approve** — proceed to commit and release
 - **Edit** — user supplies revised notes; loop back here
+- **Cancel** — abort the release. Print a summary of the uncommitted changes made so far (the Phase 2 version bump, plus any files /simplify rewrote in Phase 3), leave them in the working tree for manual review, and stop without touching git (no add/commit/tag/push).
 
 Do NOT proceed past this phase without explicit approval.
 
 ## Phase 8 — Update CHANGELOG
 
-Insert the approved notes as a new `## <NEW>` section at the top of `CHANGELOG.md` (after the file header, before the previous release section). Use the version *without* the `v` prefix to match conventional changelog entries.
+First check config. If `.claude/release.config.json` sets `changelog.skip: true`, skip this phase entirely (mark the task completed) and continue to Phase 9. Otherwise use `changelog.file` (default `CHANGELOG.md`) as the target file for the steps below.
 
-If `CHANGELOG.md` does not exist, ask the user whether to create one — don't silently start one.
+Insert the approved notes as a new `## <NEW>` section at the top of the changelog file (after the file header, before the previous release section). Use the version *without* the `v` prefix to match conventional changelog entries.
+
+If the changelog file does not exist, ask the user whether to create one — don't silently start one.
 
 ## Phase 9 — Splice in pre-commit hook
 
@@ -175,7 +198,9 @@ If `.claude/release/pre-commit.md` exists, Read it and follow its instructions b
 
 Note: pre-commit runs *after* the CHANGELOG entry is added (Phase 8). If the project's pre-commit formatter touches CHANGELOG.md, that's fine — re-stage afterward. If you prefer to format the CHANGELOG before adding the entry, do that work in `preflight.md` instead.
 
-## Phase 10 — Commit and push
+## Phase 10 — Commit, tag, and push
+
+The tag is the shipped artifact — Phase 11's release page, the manual fallback URLs, and the *next* release's Phase 6 previous-tag lookup all depend on it existing. This phase creates and pushes it explicitly; do not rely on `gh release create` (Phase 11) to create it, since that path only runs for GitHub remotes with `gh` installed and never lands the tag locally.
 
 ```bash
 git status                         # surface what's about to be committed
@@ -186,8 +211,11 @@ Stage only the files you actually changed during the release: the version file (
 ```bash
 git add <version-file> CHANGELOG.md <files-touched-by-simplify-or-pre-commit>
 git commit -m "Release <TAG_PREFIX><NEW>"
-git push
+git tag -a <TAG_PREFIX><NEW> -m "Release <TAG_PREFIX><NEW>"   # annotated tag — the shipped artifact
+git push --follow-tags                                        # pushes the commit and the new tag together
 ```
+
+Form the tag name with the project's `tag.prefix` (from `.claude/release.config.json`, default `"v"`; empty string means an unprefixed tag). `git push --follow-tags` sends the annotated tag alongside the commit — a plain `git push` would leave the tag local-only.
 
 Show `git status` output before staging. If anything looks unexpected (untracked files you didn't author, paths you don't recognize), pause and ask.
 
@@ -207,7 +235,9 @@ gh release create v<NEW> \
 EOF
 )"
 ```
-If the project doesn't tag releases with `v` prefix, omit it (read config or follow existing tag convention).
+If the project doesn't tag releases with a `v` prefix, use its `tag.prefix` (or follow the existing tag convention). The tag already exists (created and pushed in Phase 10), so `gh release create` attaches the release to it rather than creating a new one. Append `--draft` when `.claude/release.config.json` sets `release.draft: true`, and `--prerelease` when it sets `release.prerelease: true` — without those flags the release publishes live immediately, which defeats a configured draft-for-review workflow.
+
+If `gh release create` exits non-zero (e.g., expired auth), do not treat the release as failed: the commit and tag are already pushed (Phase 10), so the release is shipped — only the release *page* didn't post. Surface the error, tell the user the tag is live, and offer to re-run `gh release create <TAG_PREFIX><NEW> --notes …` (plus any `--draft`/`--prerelease` flags) after they fix `gh auth status`.
 
 **Case B — `gh` is NOT installed, but the remote IS github.com:**
 The release is already shipped (the tag was pushed in Phase 10). Print manual instructions for the release page:
