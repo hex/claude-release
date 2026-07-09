@@ -66,7 +66,11 @@ For most projects, no configuration is needed. The plugin detects:
 | Go | tags only (use config) | `go test ./...` |
 | Ruby | `*.gemspec` `spec.version` | `bundle exec rspec` |
 | Shell | `bin/<script>` `VERSION=` line | `bash tests/test_*.sh` if present |
+| PHP | `composer.json` `"version"` (tags often canonical) | ask if not detected |
+| .NET | `*.csproj` / `*.fsproj` `<Version>` | ask if not detected |
 | Generic | `VERSION` file at root | ask if not detected |
+
+This table isn't exhaustive — see `skills/release/references/version-formats.md` for the full detection priority list.
 
 If you have multiple version sources that disagree, the plugin asks you which is canonical — it won't guess.
 
@@ -132,13 +136,13 @@ For deterministic checks that don't need reasoning, prefer `release.config.json`
 
 ## Troubleshooting
 
-**"Multiple version sources detected"** — you have, e.g., both `package.json` and `Cargo.toml`. Add `version.file` to your config to disambiguate.
+**Two version sources disagree** — e.g., both `package.json` and `Cargo.toml` carry a version. The plugin asks which is canonical; add `version.file` to your config to skip that question every release.
 
-**"No test command detected"** — auto-detection couldn't find one. Set `test` in your config, or add it to your project (e.g., a `test` script in `package.json`).
+**No test command could be detected** — auto-detection couldn't infer one. The plugin asks you for it; set `test` in your config, or add a test command to your project (e.g., a `test` script in `package.json`), to skip the prompt.
 
-**"gh release create failed"** — check `gh auth status`. The plugin won't roll back commits/tags on a release failure; the tag is already pushed, so just fix the auth issue and re-run `gh release create v<NEW> --notes ...` manually with the approved notes.
+**`gh release create` failed** — check `gh auth status`. The plugin won't roll back the commit/tag on a release-page failure; the tag is already pushed, so the release is shipped — just fix the auth issue and re-run `gh release create v<NEW> --notes ...` with the approved notes.
 
-**"I don't have `gh` installed"** — that's fine. The release still ships (the tag is pushed via plain `git push` before the release-page step); the plugin will print a manual URL like `https://github.com/<owner>/<repo>/releases/new?tag=v<NEW>` for you to open and paste the approved release notes into. Same fallback works for GitLab, Gitea, and Codeberg with host-appropriate URLs.
+**"I don't have `gh` installed"** — that's fine. The release still ships (the tag is created and pushed via `git push --follow-tags` before the release-page step); the plugin will print a manual URL like `https://github.com/<owner>/<repo>/releases/new?tag=v<NEW>` for you to open and paste the approved release notes into. Same fallback works for GitLab, Gitea, and Codeberg with host-appropriate URLs.
 
 **"My preflight says fix the docs but I don't agree"** — preflight is project-defined. Edit `.claude/release/preflight.md` to match your actual project invariants.
 
