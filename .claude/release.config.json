@@ -1,0 +1,8 @@
+{
+  "version": {
+    "file": ".claude-plugin/plugin.json",
+    "format": "calver-build"
+  },
+  "test": "skip",
+  "tag": { "prefix": "v" }
+}

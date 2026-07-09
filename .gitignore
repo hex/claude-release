@@ -1,6 +1,7 @@
-# Session metadata (not part of plugin distribution)
+# Session metadata (not part of plugin distribution) — but track this repo's own release config
 .cs/
-.claude/
+.claude/*
+!.claude/release.config.json
 CLAUDE.md
 
 # Eval workspace (not part of plugin distribution)
