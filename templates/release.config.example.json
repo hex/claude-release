@@ -4,6 +4,7 @@
     "format": "semver"
   },
   "test": "npm test",
+  "review": false,
   "tag": {
     "prefix": "v"
   },

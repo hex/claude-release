@@ -9,7 +9,7 @@ A Claude Code plugin that turns "ship a release" into a single slash command. Au
 1. **Detect** version file, format, test command, and git remote
 2. **Preflight** (project-specific checks, optional)
 3. **Bump** the version
-4. **Simplify** pending changes — invokes `/simplify` to catch dupes/inefficiencies before they ship
+4. **Simplify** pending changes — invokes `/simplify` to catch dupes/inefficiencies before they ship; with `"review": true` in config, follows up with a `/code-review` correctness pass
 5. **Test** — abort on failure (validates simplifications too)
 6. **Review docs** for drift
 7. **Draft release notes** grouped by Features / Fixes / Docs / Other
@@ -90,6 +90,8 @@ Drop a `.claude/release.config.json` in your project to override detection:
 ```
 
 Supported formats: `semver`, `calver-build` (`YYYY.M.BUILD`), `calver-month-patch` (`YYYY.MM.PATCH`), `calver-month`, `calver-day`, `custom`. Full schema: see `skills/release/references/config-schema.md` after install, or `templates/release.config.example.json` for a starter.
+
+Set `"review": true` to add a `/code-review` correctness pass to the simplify phase — `/simplify` cleans up quality, `/code-review` hunts for bugs, and confirmed findings must be resolved before the release proceeds. Off by default (it adds latency and token cost per release).
 
 ## Per-project lifecycle hooks (optional)
 

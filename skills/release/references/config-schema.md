@@ -12,6 +12,7 @@ Per-project override for the claude-release plugin. All fields are optional; val
     "pattern": "string (regex with named groups, only when format=custom)"
   },
   "test": "string (shell command) | 'skip'",
+  "review": "boolean (default: false; run /code-review on the pending diff in Phase 3, after /simplify)",
   "preflightCmd": "string (shell command run before any phase begins)",
   "repo": {
     "owner": "string (overrides git remote parse)",
@@ -50,6 +51,9 @@ Regex with named capture groups (`year`, `month`, `build`, `major`, `minor`, `pa
 
 ### `test`
 Shell command for the test step. Use `"skip"` to explicitly opt out (rare; documented in release notes when used).
+
+### `review`
+When `true`, Phase 3 runs the `/code-review` skill over the pending diff after `/simplify`. `/simplify` covers quality (reuse, simplification, efficiency); `/code-review` covers correctness. Confirmed findings must be fixed before the release continues; unresolvable ones stop it. Off by default because it adds latency and token cost to every release. To review *before* the version bump instead, run `/code-review` from `.claude/release/preflight.md` — but note that path misses the edits `/simplify` applies later.
 
 ### `preflightCmd`
 A single shell command run during Phase 1 *in addition to* `.claude/release/preflight.md` (if both exist). Use this for purely deterministic checks (lint, format-check) that don't need Claude to reason about output. Non-zero exit aborts the release.

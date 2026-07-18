@@ -29,7 +29,7 @@ The user invoked `/claude-release:release`. Optional argument: a version overrid
 1. "Detect project context" (Phase 0)
 2. "Run preflight checks" (Phase 1)
 3. "Bump version" (Phase 2)
-4. "Simplify changes" (Phase 3)
+4. "Simplify and review changes" (Phase 3)
 5. "Run tests" (Phase 4)
 6. "Review documentation" (Phase 5)
 7. "Draft release notes" (Phase 6)
@@ -94,13 +94,15 @@ Never silently bump a second time. The confirmation gate in step 1 only fires fo
 
 3. Verify with a `Grep` after the edit that the new version appears exactly once at the expected location.
 
-## Phase 3 — Simplify changes
+## Phase 3 — Simplify and review changes
 
 Invoke the `/simplify` skill via the Skill tool to review all pending changes for reuse, quality, and efficiency. `/simplify` is part of each Claude Code install — assume it's available, no fallback needed.
 
 The skill fans out parallel review agents (reuse, quality, efficiency) over the diff and auto-applies fixes it finds. The subsequent test run (Phase 4) validates that nothing was broken by the simplification. Note which files /simplify modified — you'll surface them at the Phase 7 approval gate so the user's approval covers the shipping code, not just the release notes.
 
 If `/simplify` reports an empty diff, verify with the user — a release with zero pending changes is unusual unless it's a pure docs/changelog release.
+
+**Then, if `.claude/release.config.json` sets `review: true`**, invoke the `/code-review` skill via the Skill tool over the pending diff. `/simplify` does quality cleanups only; `/code-review` is the correctness pass that hunts for bugs. It runs after `/simplify` so the simplification's auto-applied edits get reviewed too. Fix any confirmed correctness finding before continuing. If a confirmed finding can't be resolved, stop the release and surface it — do not ship a known bug. When `review` is absent or `false`, skip this step (projects can also run a review from `.claude/release/preflight.md` instead; see the preflight template).
 
 ## Phase 4 — Run tests
 

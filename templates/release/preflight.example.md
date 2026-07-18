@@ -32,6 +32,17 @@ git status --porcelain types/
 If the output is non-empty, generated types were stale. **Stop the release**
 and tell the user to commit the regenerated files.
 
+## Example: correctness review of the pending diff
+
+Invoke the `/code-review` skill on the pending working-tree changes. If it
+reports confirmed correctness findings, fix them; if a finding can't be
+resolved, **stop the release** and surface it.
+
+Note: preflight runs before the version bump and `/simplify`, so a review
+here won't see the edits `/simplify` auto-applies in Phase 3. If you want
+those reviewed too, prefer `"review": true` in `release.config.json`, which
+runs `/code-review` in Phase 3 after `/simplify`.
+
 ## Example: docs cross-check
 
 Verify the README's command list matches `bin/<your-cli> --help` output. If
