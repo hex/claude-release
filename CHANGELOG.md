@@ -4,6 +4,15 @@ All notable changes to claude-release are documented here. The format follows th
 
 <!-- /claude-release:release inserts new versions here, above older ones. -->
 
+## 2026.7.2
+
+### Features
+- Optional `/code-review` correctness pass in the release flow. Set `"review": true` in `.claude/release.config.json` and Phase 3 — now "Simplify and review changes" — runs `/code-review` over the pending diff after `/simplify`, so auto-applied simplifications get correctness-checked too. Confirmed findings must be fixed before the release continues; unresolvable ones stop it. Off by default.
+- The preflight template gains a `/code-review` example for reviewing before the version bump, with a note that the config flag is preferred (preflight-time review misses `/simplify`'s edits).
+
+### Other
+- Tests skipped per `test: "skip"` config (markdown-only plugin; no test suite).
+
 ## 2026.7.1
 
 First tagged release of the `claude-release` plugin.
