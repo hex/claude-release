@@ -4,6 +4,14 @@ All notable changes to claude-release are documented here. The format follows th
 
 <!-- /claude-release:release inserts new versions here, above older ones. -->
 
+## 2026.7.3
+
+### Features
+- Optional `/claude-security` vulnerability scan in the release flow. Set `"security": true` in `.claude/release.config.json` and Phase 1 runs the `/claude-security` plugin over the changes the release ships. It lives in preflight — not alongside `/code-review` in Phase 3 — because `/claude-security` change scans read committed code only, and from the version bump onward the working tree is deliberately dirty. Confirmed findings must be resolved before the release continues; unresolvable ones stop it. Unlike `/simplify` and `/code-review`, `/claude-security` is a marketplace plugin rather than a stock install, so when it's missing the flow asks whether to install-and-re-run or ship without the scan — it never skips the opted-in gate silently. Off by default; independent of the `review` flag.
+
+### Other
+- Tests skipped per `test: "skip"` config (markdown-only plugin; no test suite).
+
 ## 2026.7.2
 
 ### Features
