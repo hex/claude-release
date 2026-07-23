@@ -27,7 +27,7 @@ The user invoked `/claude-release:release`. Optional argument: a version overrid
 **Before starting Phase 0, enumerate every phase as a task** so the user sees a live checklist tick off as the workflow proceeds. Use `TaskCreate` to add the following tasks in order (one call per task):
 
 1. "Detect project context" (Phase 0)
-2. "Run preflight checks" (Phase 1)
+2. "Run preflight and security scan" (Phase 1)
 3. "Bump version" (Phase 2)
 4. "Simplify and review changes" (Phase 3)
 5. "Run tests" (Phase 4)
@@ -62,15 +62,30 @@ Read project state to figure out version file, format, test command, and repo. P
    claude-release: project=<name>, version=<current> (<format>), test=<cmd>, repo=<owner/repo>
    ```
 
-## Phase 1 — Splice in project preflight
+## Phase 1 — Run preflight and security scan
 
-Two preflight inputs may exist; run both if both are present.
+Up to three preflight inputs may exist; run whichever are present, in the order below — cheapest first, so a fast check aborts the release before an expensive one runs.
 
 1. **`preflightCmd` from `.claude/release.config.json`** (deterministic check). If the config sets `preflightCmd`, run it as a single shell command. Non-zero exit aborts the release. Use this for purely deterministic checks (lint, format-check) that don't need Claude to reason about output.
 
 2. **`.claude/release/preflight.md`** (Claude-led check). If this file exists, **Read it and follow its instructions before continuing**. Treat its content as authoritative project-specific guidance — it may add integrity checks (e.g., install/uninstall parity), additional doc reviews, or required pre-release verifications. If preflight reports unfixable issues, stop the release and surface them.
 
-If neither input exists, skip this phase.
+3. **`security: true` in `.claude/release.config.json`** (deep vulnerability scan). Invoke `/claude-security` via the Skill tool and ask it to scan the changes this release ships. This is the only step in the flow that depends on a *marketplace* plugin rather than a stock Claude Code install, so it needs the handling below. When `security` is absent or `false`, skip it.
+
+   **If `/claude-security` isn't installed**, don't silently skip a gate the project opted into. Use `AskUserQuestion`:
+   - **Install and re-run** — `/plugin install claude-security@claude-plugins-official`, then `/reload-plugins`, then re-invoke the release.
+   - **Continue without the scan** — proceed, and document the skipped scan in the release notes the same way a skipped test run is documented.
+
+   **Scope the scan.** `/claude-security` change scans read *committed* code only; only its full scan reads the working tree, and that costs far more.
+   - Releasing from a feature branch that has commits its base lacks → ask it to scan the branch diff.
+   - Releasing from the default branch, where there is no branch diff → ask it to scan the commits since the previous release tag. Phase 6 hasn't run yet, so find that tag here with the same lookup it uses (`git tag --list '<prefix>*' --sort=-version:refname | head -1`, with `tag.prefix` from config). If the lookup comes back empty — a first-ever release — there is no change scope at all.
+   - Whenever a change scan can't be scoped (no prior tag, or the plugin can't take the range), do not launch an expensive run unasked. State what the alternatives cover and cost — a focused-area scan, or a full-repository scan — and let the user pick with `AskUserQuestion`, including the option to skip.
+
+   **State the coverage gap before scanning.** Run `git status --porcelain`; if the tree is dirty, a change scan won't see those edits. Phase 3's `/simplify` also auto-applies edits *after* this phase, which the scan won't see either — the same blind spot a preflight-time `/code-review` has. Say so plainly rather than letting the release read as scanned end to end.
+
+   **Act on the report.** The scan writes `CLAUDE-SECURITY-<timestamp>/CLAUDE-SECURITY-RESULTS.md` — read it. Findings are published only after independent verifier agents confirm them, so treat each listed finding as real: resolve it before the release continues, using the plugin's **Suggest patches** flow where that helps. If a confirmed finding can't be resolved, stop the release and surface it — do not ship a known vulnerability. The scan directory carries its own `.gitignore`, so it stays out of the release commit as long as Phase 10's named-file staging is respected.
+
+If none of the three inputs exist, skip this phase.
 
 ## Phase 2 — Bump version
 
@@ -273,6 +288,7 @@ released v<NEW>: <github release url>
 - Never skip tests silently. If tests fail, stop.
 - Never commit or push before the user approves the release notes.
 - Never bypass the user-defined preflight if it exists — it encodes project invariants.
+- Never ship past a confirmed `/claude-security` finding when `security: true` — resolve it or stop the release.
 - Never use `git add -A` for the release commit — stage specific files (version file, CHANGELOG, simplify/pre-commit changes). Always show `git status` first.
 - If the user's project has unusual conventions you didn't account for, ASK — don't guess.
 - If two version sources disagree, ASK — don't pick.

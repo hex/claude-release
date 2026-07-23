@@ -5,6 +5,7 @@
   },
   "test": "npm test",
   "review": false,
+  "security": false,
   "tag": {
     "prefix": "v"
   },

@@ -43,6 +43,22 @@ here won't see the edits `/simplify` auto-applies in Phase 3. If you want
 those reviewed too, prefer `"review": true` in `release.config.json`, which
 runs `/code-review` in Phase 3 after `/simplify`.
 
+## Example: security scan of a specific area
+
+Set `"security": true` in `release.config.json` for the common case — it runs
+`/claude-security` in this same phase, scoped to the changes the release
+ships. Write a scan here instead when you want a *different* scope every
+release, e.g. always scanning the same sensitive area regardless of what
+changed:
+
+Invoke `/claude-security` and ask it to scan `src/auth/` in full. If the
+report lists confirmed findings, resolve them (its Suggest patches flow
+builds the fix); if one can't be resolved, **stop the release**.
+
+A full-area scan is slower and costs more tokens than the change scan the
+config flag runs — only worth it for code where a missed vulnerability is
+expensive. Don't enable both for the same area; you'd pay twice.
+
 ## Example: docs cross-check
 
 Verify the README's command list matches `bin/<your-cli> --help` output. If

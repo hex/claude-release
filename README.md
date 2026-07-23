@@ -7,7 +7,7 @@ A Claude Code plugin that turns "ship a release" into a single slash command. Au
 `/claude-release:release` drives the full release workflow:
 
 1. **Detect** version file, format, test command, and git remote
-2. **Preflight** (project-specific checks, optional)
+2. **Preflight** (project-specific checks, optional; with `"security": true` in config, adds a `/claude-security` vulnerability scan)
 3. **Bump** the version
 4. **Simplify** pending changes — invokes `/simplify` to catch dupes/inefficiencies before they ship; with `"review": true` in config, follows up with a `/code-review` correctness pass
 5. **Test** — abort on failure (validates simplifications too)
@@ -92,6 +92,13 @@ Drop a `.claude/release.config.json` in your project to override detection:
 Supported formats: `semver`, `calver-build` (`YYYY.M.BUILD`), `calver-month-patch` (`YYYY.MM.PATCH`), `calver-month`, `calver-day`, `custom`. Full schema: see `skills/release/references/config-schema.md` after install, or `templates/release.config.example.json` for a starter.
 
 Set `"review": true` to add a `/code-review` correctness pass to the simplify phase — `/simplify` cleans up quality, `/code-review` hunts for bugs, and confirmed findings must be resolved before the release proceeds. Off by default (it adds latency and token cost per release).
+
+Set `"security": true` to add a [`/claude-security`](https://code.claude.com/docs/en/claude-security) vulnerability scan to the preflight phase, scoped to the changes the release ships. Confirmed findings must be resolved before the release proceeds. Two caveats worth knowing before you enable it:
+
+- It runs in **preflight**, not alongside `/code-review`, because `/claude-security` change scans read *committed* code — and from the version bump onward the working tree is deliberately dirty. So the scan won't see uncommitted work, or the edits `/simplify` applies later; the plugin says so rather than implying full coverage.
+- It needs the plugin installed (`/plugin install claude-security@claude-plugins-official`). If it's missing, you're asked whether to install and re-run or ship without the scan — never skipped silently.
+
+Off by default; a scan is a multi-agent run that can take a while and use a significant number of tokens. `review` and `security` are independent.
 
 ## Per-project lifecycle hooks (optional)
 

@@ -125,5 +125,6 @@ If there are, lead with them — users need to see them first.
 ## When NOT to use lifecycle markdowns
 
 - For deterministic checks that don't need reasoning (a single lint command), use `preflightCmd` in `release.config.json` instead. Lighter, faster, no Claude invocation.
+- For a vulnerability scan of the changes a release ships, use `"security": true` in `release.config.json` instead. It runs in the same phase as `preflight.md` and already handles scoping, the missing-plugin case, and the stop-on-confirmed-finding rule. Write the scan into `preflight.md` only when you need a scope the flag doesn't produce (see the preflight template).
 - For documentation about how to release (audience: humans), use `docs/release.md` in your project. The lifecycle slots are for *runnable* instructions, not reference material.
 - For one-off release notes (not a recurring template), just edit the draft when the approval gate appears. Don't add a `notes-template.md` for a single release.
