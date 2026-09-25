@@ -4,6 +4,18 @@ All notable changes to claude-release are documented here. The format follows th
 
 <!-- /claude-release:release inserts new versions here, above older ones. -->
 
+## 2026.9.1
+
+### Features
+- New Phase 13, "Verify release", checks that the release is live. It reads the tag on origin, the GitHub release page, the version files at the tag, the package registry, and a clean install in a throwaway `HOME`, then answers yes or no with evidence and caveats. It reads live state only, never the working tree or the release notes. If the local tag is missing or points at a different commit than origin, it reads the version files from the tag tarball instead. It never publishes, tags or pushes. A failed check names the surface and leaves the fix to you. Adapted from openclaw's verify-release skill (MIT).
+- The Confirm step moves to Phase 14 and prints the verification answer next to the release URL.
+
+### Docs
+- The post-release template said it runs in Phase 11. It runs in Phase 12.
+
+### Other
+- Tests skipped per `test: "skip"` config (markdown-only plugin; no test suite).
+
 ## 2026.7.3
 
 ### Features
