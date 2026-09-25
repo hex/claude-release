@@ -20,7 +20,7 @@ When the skill reaches the relevant phase, it:
 2. If yes: reads the file with `Read` and treats its contents as authoritative project guidance for that phase.
 3. Project guidance can extend, restrict, or replace the generic behavior — whichever the markdown specifies.
 
-The user-defined markdown wins on conflicts within its phase. The generic flow's invariants (test failures abort, approval gate is required, no commit without approval) are NOT overridable — they live in the skill body, not the splice.
+The user-defined markdown wins on conflicts within its phase. The generic flow's invariants (test failures abort, approval gate is required, no commit without approval, Phase 13 verification only reads and never publishes) are NOT overridable — they live in the skill body, not the splice.
 
 ## Writing a lifecycle markdown
 
