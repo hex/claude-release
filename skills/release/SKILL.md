@@ -18,7 +18,7 @@ allowed-tools:
 
 # /claude-release:release
 
-Drive a software release end-to-end. The flow is: detect project context → run preflight → bump version → simplify changes → run tests → review docs → draft release notes → get approval → commit → tag → push → create GitHub release → run post-release hooks.
+Drive a software release end-to-end. The flow is: detect project context → run preflight → bump version → simplify changes → run tests → review docs → draft release notes → get approval → commit → tag → push → create GitHub release → run post-release hooks → verify the release is live.
 
 The user invoked `/claude-release:release`. Optional argument: a version override (e.g., `/claude-release:release 2.1.0`). If absent, compute the next version automatically.
 
@@ -39,7 +39,8 @@ The user invoked `/claude-release:release`. Optional argument: a version overrid
 11. "Commit, tag, and push" (Phase 10)
 12. "Create GitHub release" (Phase 11)
 13. "Run post-release hook" (Phase 12)
-14. "Confirm completion" (Phase 13)
+14. "Verify release" (Phase 13)
+15. "Confirm completion" (Phase 14)
 
 For each phase below: call `TaskUpdate` with `status: "in_progress"` when you START the phase, and `TaskUpdate` with `status: "completed"` when you FINISH it. If a phase is genuinely a no-op for this project (e.g., no `preflight.md` exists and no `preflightCmd` configured), still mark it completed — don't skip the status update.
 
@@ -276,11 +277,25 @@ Point the user at the right URL if you can recognize the host; otherwise just co
 
 If `.claude/release/post-release.md` exists, Read it and follow its instructions. Common uses: deploy docs, post to a channel, trigger a deploy pipeline, publish to a package registry.
 
-## Phase 13 — Confirm completion
+## Phase 13 — Verify release
 
-Print a one-line summary:
+Nothing so far has read the result back. Phase 11 and Phase 12 report what they *sent*; this phase checks what is *live* and answers one question: is `<TAG_PREFIX><NEW>` actually released? **Read `references/verify-release.md` and follow it.** It runs after Phase 12 because `post-release.md` is where registry publishes happen.
+
+It checks only the surfaces this project ships: the tag on origin, the GitHub release page, the version files at the tag, the package registry readback, and a clean install into a throwaway `HOME`. Each check reads live state, never the working tree, the release notes, or what earlier phases printed.
+
+This phase is read-only. It never publishes, tags, pushes, edits the release, or re-runs a publish. A failed check doesn't undo the release (the tag is already public); it makes the answer **no** and names the failing surface, and the user decides what to fix.
+
+Print its report: the yes/no answer, evidence bullets, caveats (surfaces absent by design, a diverged checkout and the live source used instead, registry or mirror lag), and the temp dirs it cleaned up.
+
+## Phase 14 — Confirm completion
+
+Print a one-line summary carrying the Phase 13 answer:
 ```
-released v<NEW>: <github release url>
+released v<NEW>: <github release url> (verified: yes)
+```
+or, when Phase 13 answered no:
+```
+released v<NEW>: <github release url> (NOT verified: <failing surface>)
 ```
 
 ## Important rules
@@ -292,6 +307,7 @@ released v<NEW>: <github release url>
 - Never use `git add -A` for the release commit — stage specific files (version file, CHANGELOG, simplify/pre-commit changes). Always show `git status` first.
 - If the user's project has unusual conventions you didn't account for, ASK — don't guess.
 - If two version sources disagree, ASK — don't pick.
+- Phase 13 only reads. Never publish, tag, push, edit a release, or re-run a registry publish from it, even to fix a failed check. Surface the failure instead.
 - Treat `.claude/release/*.md` files as authoritative project guidance. They override generic behavior in their phase.
 
 ## See also
@@ -299,3 +315,4 @@ released v<NEW>: <github release url>
 - `references/version-formats.md` — version detection priority list, format presets, regex patterns
 - `references/config-schema.md` — full `release.config.json` schema with examples
 - `references/lifecycle.md` — which lifecycle markdown gets spliced when, and how to write one
+- `references/verify-release.md` — Phase 13 surface checks, commands, and report format

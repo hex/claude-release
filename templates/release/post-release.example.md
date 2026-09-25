@@ -1,9 +1,10 @@
 # Post-release tasks
 
-Runs in Phase 11, after `gh release create` succeeds. The release is
-already public at this point — don't put anything here that could fail
-the release if it errors. Use this for follow-up tasks: deploys,
-announcements, registry pushes.
+Runs in Phase 12, after `gh release create` succeeds (Phase 11). Phase 13
+then verifies the release live, including any registry this file publishes
+to. The release is already public at this point — don't put anything here
+that could fail the release if it errors. Use this for follow-up tasks:
+deploys, announcements, registry pushes.
 
 ## Example: publish to npm
 ```bash

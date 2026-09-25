@@ -19,7 +19,8 @@ A Claude Code plugin that turns "ship a release" into a single slash command. Au
 11. **Commit, tag, push**
 12. **Create release page** — auto via `gh` if installed and the remote is GitHub; otherwise emits a manual URL (works on GitLab, Gitea, self-hosted git too)
 13. **Post-release hook** (project-specific, optional)
-14. **Confirm** — print the release URL
+14. **Verify** — read live state back (tag on origin, release page, version files at the tag, registry, clean install in a throwaway `HOME`) and answer "is it actually released?" with evidence. Read-only: it never publishes or retags
+15. **Confirm** — print the release URL and the verification answer
 
 ## Installation
 
